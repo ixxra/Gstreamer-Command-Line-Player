@@ -17,9 +17,10 @@ using namespace std;
 static
 string uri_from_local(const char* name)
 {
-  string uri("file://");
   char* path = canonicalize_file_name(name);
-  uri += path;
+  gchar* local_uri = g_filename_to_uri(path, NULL, NULL);
+  string uri(local_uri);
+  g_free(local_uri);
   free(path);
   
   return uri;

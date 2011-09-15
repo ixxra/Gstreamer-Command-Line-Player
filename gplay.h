@@ -23,6 +23,7 @@
 #include "playbin.h"
 #include "keysdelegate.h"
 #include "playlist.h"
+#include "taglistdelegate.h"
 
 class gPlay
 {
@@ -43,12 +44,14 @@ void seek(int sec){playbin.seek(sec);}
 void setVolume(gdouble delta){playbin.setVolume(delta);}
 
 GstState state(){ return playbin.state();}
+const Playlist& getPlaylist(){ return playlist; }
 
 private:
   Playbin playbin;
   Playlist playlist;
   Playlist::iterator position;
   KeysDelegate keybinder;
+  TagListDelegate tagsdelegate;
   
   void on_state_changed(GstState newState);
   void on_eos();

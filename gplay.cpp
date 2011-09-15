@@ -107,6 +107,9 @@ void gPlay::setPlaylist(Playlist& other)
   playlist.splice(playlist.end(), other);
   position = playlist.begin();
   playbin.setUri((*position)->uri);
+  
+  tagsdelegate.setPlaylist(&playlist);
+  tagsdelegate.parseTags();
 }
 
 void gPlay::next()

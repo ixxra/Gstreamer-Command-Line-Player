@@ -20,12 +20,26 @@
 #ifndef TAGLISTDELEGATE_H
 #define TAGLISTDELEGATE_H
 
+#include "playlist.h"
+#include <gst/gst.h>
+
+
 class TagListDelegate
 {
 
 public:
 TagListDelegate();
 virtual ~TagListDelegate();
+void setPlaylist(Playlist* playlist);
+void parseTags();
+
+private:
+  Playlist* playlist;
+  Playlist::iterator pos;
+  GstElement* parser;
+  GstElement* dec;
+  
+  static gboolean bus_callback(GstBus* sender, GstMessage* msg, void* data);
 };
 
 #endif // TAGLISTDELEGATE_H

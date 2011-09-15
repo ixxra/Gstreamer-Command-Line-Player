@@ -18,11 +18,36 @@
 
 
 #include "keysdelegate.h"
+#include "playlist.h"
 #include <glib.h>
 #include <cstdio>
 #include "gplay.h"
 
 using namespace std;
+
+void print_playlist(const Playlist& playlist)
+{
+  int ctr = 1;
+  
+  g_print("============= PLAYLIST =============\n");
+  for ( Playlist::const_iterator pos = playlist.begin(); pos != playlist.end(); ++pos){
+    const Track* t = *pos;
+    if (t->title.length() == 0){
+      gchar* filename = g_filename_from_uri(t->uri.c_str(), NULL, NULL);
+      gchar* basename = g_path_get_basename(filename);
+      g_print("%02d - %s by %s\n", ctr, basename, t->artist.c_str());
+      
+      g_free(basename);
+      g_free(filename);
+      
+    } 
+    else{
+      g_print("%02d - %s by %s\n", ctr, t->title.c_str(), t->artist.c_str());
+    }
+    ++ctr;
+  }
+  g_print("====================================\n");
+}
 
  gboolean on_key_press(GIOChannel *source, GIOCondition condition, gpointer data)
  {
@@ -66,11 +91,15 @@ using namespace std;
        break;
        
      case 'u':
-       player->setVolume(+0.05);
+       player->setVolume(+0.01);
        break;
        
      case 'd':
-       player->setVolume(-0.05);
+       player->setVolume(-0.01);
+       break;
+       
+     case 'l':
+       print_playlist(player->getPlaylist());
        break;
        
      default:
