@@ -21,13 +21,19 @@
 #include "playlist.h"
 #include <glib.h>
 #include <cstdio>
+#include <termios.h>
 #include "gplay.h"
 
 using namespace std;
 
-void print_playlist(const Playlist& playlist)
+
+
+void print_playlist(gPlay* player)
 {
   int ctr = 1;
+  
+  Playlist playlist = player->getPlaylist();
+  Playlist::const_iterator playlistPosition = player->playlistPosition();
   
   g_print("============= PLAYLIST =============\n");
   for ( Playlist::const_iterator pos = playlist.begin(); pos != playlist.end(); ++pos){
@@ -35,18 +41,57 @@ void print_playlist(const Playlist& playlist)
     if (t->title.length() == 0){
       gchar* filename = g_filename_from_uri(t->uri.c_str(), NULL, NULL);
       gchar* basename = g_path_get_basename(filename);
-      g_print("%02d - %s by %s\n", ctr, basename, t->artist.c_str());
+      
+      if ( g_strcmp0((*pos)->uri.c_str(), (*playlistPosition)->uri.c_str()) == 0 ){
+	g_print("\033[31m%02d - %s by %s\033[39m\n", ctr, basename, t->artist.c_str());
+      }
+      
+      else
+	g_print("%02d - %s by %s\n", ctr, basename, t->artist.c_str());
       
       g_free(basename);
       g_free(filename);
       
     } 
     else{
-      g_print("%02d - %s by %s\n", ctr, t->title.c_str(), t->artist.c_str());
+      if ( g_strcmp0((*pos)->uri.c_str(), (*playlistPosition)->uri.c_str()) == 0){
+	g_print("\033[31m%02d - %s by %s\n\033[39m", ctr, t->title.c_str(), t->artist.c_str());
+      }
+      else
+	g_print("%02d - %s by %s\n", ctr, t->title.c_str(), t->artist.c_str());
     }
     ++ctr;
   }
   g_print("====================================\n");
+}
+
+static
+void jump_to(gPlay* gplay)
+{
+  g_print("Jump to: ");
+  
+  struct termios termios_p;
+  tcgetattr(STDIN_FILENO, &termios_p);
+  termios_p.c_lflag |= (ICANON|ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &termios_p);
+  
+  //TODO: Disconnect key reading here!
+  int pos = -1;
+  scanf("%d", &pos);
+  g_print("scanned position: %d\n", pos);
+  --pos;
+  
+  if (pos >= 0 && pos < gplay->getPlaylist().size() ){
+    gplay->stop();
+    gplay->playlistPosition() = gplay->getPlaylist().begin();
+    for (int i = 0; i < pos; i++)
+      ++(gplay->playlistPosition());
+    gplay->play();
+  } else 
+    g_print("invalid position\n");
+  
+  termios_p.c_lflag &= ~(ICANON|ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &termios_p);
 }
 
  gboolean on_key_press(GIOChannel *source, GIOCondition condition, gpointer data)
@@ -57,7 +102,8 @@ void print_playlist(const Playlist& playlist)
    
    char key;
    g_io_channel_read_chars(source, &key, 1, NULL, NULL);
-   
+   g_io_channel_flush(source, NULL);
+  
    switch (key){
      case 'n': 
        player->next();
@@ -94,12 +140,24 @@ void print_playlist(const Playlist& playlist)
        player->setVolume(+0.01);
        break;
        
+     case 'U':
+       player->setVolume(+0.05);
+       break;
+       
      case 'd':
        player->setVolume(-0.01);
        break;
        
+     case 'D':
+       player->setVolume(-0.05);
+       break;
+       
      case 'l':
-       print_playlist(player->getPlaylist());
+       print_playlist(player);
+       break;
+       
+     case 'j':
+       jump_to(player);
        break;
        
      default:

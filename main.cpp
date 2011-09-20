@@ -1,13 +1,9 @@
-#include "playbin.h"
 #include "playlist.h"
-#include "keysdelegate.h"
 #include <gst/gst.h>
-#include <iostream>
-#include <string>
 #include <cstdlib>
 #include <unistd.h>
-#include <curses.h>
 #include <termios.h>
+#include <iostream>
 #include <cstdio>
 #include "gplay.h"
 
