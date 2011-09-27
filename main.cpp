@@ -1,34 +1,16 @@
-#include "playbin.h"
+#include "commandlineparser.h"
 #include "playlist.h"
-#include "keysdelegate.h"
-#include <gst/gst.h>
-#include <iostream>
-#include <string>
-#include <cstdlib>
-#include <unistd.h>
-#include <curses.h>
-#include <termios.h>
-#include <cstdio>
 #include "gplay.h"
+#include <gst/gst.h>
+#include <termios.h>
 
 
-using namespace std;
+static const char* help = "Usage: gplay  [-l playlist|file] ...\n";
 
-static
-string uri_from_local(const char* name)
-{
-  char* path = canonicalize_file_name(name);
-  gchar* local_uri = g_filename_to_uri(path, NULL, NULL);
-  string uri(local_uri);
-  g_free(local_uri);
-  free(path);
-  
-  return uri;
-}
 
 int main(int argc, char **argv) {
   if (argc == 1){
-    cout << "Usage: playbin <file1>..." << endl;
+    g_print(help);
     return 0;
   }
   
@@ -41,13 +23,7 @@ int main(int argc, char **argv) {
   
   gPlay gplay;
   Playlist playlist;
-  
-  for (int i = 1; i < argc; i++){
-    string source = uri_from_local(argv[i]);
-    Track* track = new Track;
-    track->uri = source;
-    playlist.push_back(track);
-  }
+  parse_command_line(argc, argv, playlist);
   
   gplay.setPlaylist(playlist);
   gplay.play();

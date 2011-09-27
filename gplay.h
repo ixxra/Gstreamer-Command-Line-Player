@@ -44,7 +44,8 @@ void seek(int sec){playbin.seek(sec);}
 void setVolume(gdouble delta){playbin.setVolume(delta);}
 
 GstState state(){ return playbin.state();}
-const Playlist& getPlaylist(){ return playlist; }
+Playlist& getPlaylist() { return playlist; }
+Playlist::iterator& playlistPosition() { return position; }
 
 private:
   Playbin playbin;

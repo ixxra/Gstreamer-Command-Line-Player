@@ -56,47 +56,59 @@ main (int argc, char ** argv)
 
   gst_init (&argc, &argv);
 
-  if (argc < 2 || !gst_uri_is_valid (argv[1]))
-    g_error ("Usage: %s file:///path/to/file", argv[0]);
-
   pipe = gst_pipeline_new ("pipeline");
-
-  dec = gst_element_factory_make ("uridecodebin", NULL);
-  g_object_set (dec, "uri", argv[1], NULL);
-  gst_bin_add (GST_BIN (pipe), dec);
-
+  GstElement* src = gst_element_factory_make("filesrc", NULL);
+  //dec = gst_element_factory_make ("uridecodebin", NULL);
+  dec = gst_element_factory_make ("decodebin2", NULL);
   sink = gst_element_factory_make ("fakesink", NULL);
-  gst_bin_add (GST_BIN (pipe), sink);
-
+  
+  gst_bin_add_many(GST_BIN(pipe), src, dec, sink, NULL);
+  gst_element_link_pads(src, "src", dec, "sink");
   g_signal_connect (dec, "pad-added", G_CALLBACK (on_new_pad), sink);
 
-  gst_element_set_state (pipe, GST_STATE_PAUSED);
+  
+  for (int i = 1; i < argc; i++){
+    char* filename = canonicalize_file_name(argv[i]);
 
-  while (TRUE) {
-    GstTagList *tags = NULL;
+    g_object_set(src, "location", filename, NULL);
+    gst_element_set_state (pipe, GST_STATE_PAUSED);
 
-    msg = gst_bus_timed_pop_filtered (GST_ELEMENT_BUS (pipe),
-        GST_CLOCK_TIME_NONE,
-        GST_MESSAGE_ASYNC_DONE | GST_MESSAGE_TAG | GST_MESSAGE_ERROR);
+    g_print("Tags from %s:\n", filename);
+    
+    while (TRUE) {
+      GstTagList *tags = NULL;
 
-    if (GST_MESSAGE_TYPE (msg) != GST_MESSAGE_TAG) /* error or async_done */
-      break;
+      msg = gst_bus_timed_pop_filtered (GST_ELEMENT_BUS (pipe),
+	  GST_CLOCK_TIME_NONE,
+	  GST_MESSAGE_ASYNC_DONE | GST_MESSAGE_TAG | GST_MESSAGE_ERROR);
 
-    gst_message_parse_tag (msg, &tags);
+      if (GST_MESSAGE_TYPE (msg) != GST_MESSAGE_TAG) /* error or async_done */
+	break;
 
-    g_print ("Got tags from element %s:\n", GST_OBJECT_NAME (msg->src));
-    gst_tag_list_foreach (tags, print_one_tag, NULL);
-    g_print ("\n");
-    gst_tag_list_free (tags);
+      gst_message_parse_tag (msg, &tags);
+
+      g_print ("Got tags from element %s:\n", GST_OBJECT_NAME (msg->src));
+      gst_tag_list_foreach (tags, print_one_tag, NULL);
+      g_print ("\n");
+      gst_tag_list_free (tags);
+
+      gst_message_unref (msg);
+    };
+
+    if (GST_MESSAGE_TYPE (msg) == GST_MESSAGE_ERROR){
+      GError* error;
+      gst_message_parse_error(msg, &error, NULL);
+      g_print("Got error: %s\n", error->message);
+      g_error_free(error);
+      g_error ("Bye!\n");
+      
+    }
 
     gst_message_unref (msg);
-  };
-
-  if (GST_MESSAGE_TYPE (msg) == GST_MESSAGE_ERROR)
-    g_error ("Got error");
-
-  gst_message_unref (msg);
-  gst_element_set_state (pipe, GST_STATE_NULL);
+    gst_element_set_state (pipe, GST_STATE_NULL);  
+    free(filename);
+  }
+  
   gst_object_unref (pipe);
   return 0;
 }
